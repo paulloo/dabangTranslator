@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 300px;
+      padding: 10px;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin-bottom: 10px;
+    }
+    select {
+      margin-bottom: 10px;
+    }
+    .stats {
+      margin-top: 15px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background: #eee;
+      border-radius: 5px;
+      margin-top: 5px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #4CAF50;
+      border-radius: 5px;
+      transition: width 0.3s;
+    }
+    .config-section {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+    }
+    .config-section input {
+      width: 100%;
+      padding: 5px;
+      margin: 5px 0;
+    }
+    .config-section button {
+      width: 100%;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <textarea id="sourceText" placeholder="输入要翻译的文本"></textarea>
+  <select id="targetLang">
+    <option value="en">英语</option>
+    <option value="zh">中文</option>
+    <option value="ja">日语</option>
+    <option value="ko">韩语</option>
+  </select>
+  <button id="translateBtn">翻译</button>
+  <div id="result"></div>
+  <div class="stats">
+    <div>本月字符统计</div>
+    <div class="progress-bar">
+      <div id="progress-fill" class="progress-fill"></div>
+    </div>
+    <div id="char-count">已使用：0/500000</div>
+  </div>
+
+  <div class="config-section">
+    <h3>配置</h3>
+    <div>
+      <label for="apiKey">Google Translate API Key:</label>
+      <input type="text" id="apiKey" placeholder="输入 API Key">
+    </div>
+    <button id="saveConfig">保存配置</button>
+  </div>
+
+  <script src="env.js"></script>
+  <script src="config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html> 
