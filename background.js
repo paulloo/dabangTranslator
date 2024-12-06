@@ -34,7 +34,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 }); 
 
-// 添加字符统计相关功能
+// 修改字符统计相关功能
 const MONTHLY_CHAR_LIMIT = 500000;
 
 // 获取当前月份的key
@@ -44,10 +44,11 @@ function getCurrentMonthKey() {
 }
 
 // 重置字符统计
-async function resetCharacterCount() {
+async function resetCharacterCount(apiKey) {
     const currentMonth = getCurrentMonthKey();
+    const storageKey = `characterCount_${apiKey}`;
     await chrome.storage.local.set({ 
-        characterCount: {
+        [storageKey]: {
             month: currentMonth,
             count: 0
         }
@@ -55,26 +56,28 @@ async function resetCharacterCount() {
 }
 
 // 获取字符统计
-async function getCharacterCount() {
-    const data = await chrome.storage.local.get('characterCount');
+async function getCharacterCount(apiKey) {
+    const storageKey = `characterCount_${apiKey}`;
+    const data = await chrome.storage.local.get(storageKey);
     const currentMonth = getCurrentMonthKey();
     
-    // 如果是新的月份，重置计数
-    if (!data.characterCount || data.characterCount.month !== currentMonth) {
-        await resetCharacterCount();
+    // 如果是新的月份或新的API key，重置计数
+    if (!data[storageKey] || data[storageKey].month !== currentMonth) {
+        await resetCharacterCount(apiKey);
         return 0;
     }
     
-    return data.characterCount.count;
+    return data[storageKey].count;
 }
 
 // 更新字符统计
-async function updateCharacterCount(newChars) {
-    const currentCount = await getCharacterCount();
+async function updateCharacterCount(apiKey, newChars) {
+    const currentCount = await getCharacterCount(apiKey);
     const currentMonth = getCurrentMonthKey();
+    const storageKey = `characterCount_${apiKey}`;
     
     await chrome.storage.local.set({
-        characterCount: {
+        [storageKey]: {
             month: currentMonth,
             count: currentCount + newChars
         }
@@ -82,8 +85,8 @@ async function updateCharacterCount(newChars) {
 }
 
 // 检查字符限制
-async function checkCharacterLimit(newChars) {
-    const currentCount = await getCharacterCount();
+async function checkCharacterLimit(apiKey, newChars) {
+    const currentCount = await getCharacterCount(apiKey);
     return {
         allowed: (currentCount + newChars) <= MONTHLY_CHAR_LIMIT,
         current: currentCount,
@@ -91,24 +94,24 @@ async function checkCharacterLimit(newChars) {
     };
 }
 
-// 修改现有的消息监听器
+// 修改消息监听器
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'updateCharacterCount') {
-        updateCharacterCount(message.count)
+        updateCharacterCount(message.apiKey, message.count)
             .then(() => sendResponse({ success: true }))
             .catch(error => sendResponse({ success: false, error }));
-        return true; // 保持消息通道开放
+        return true;
     }
     
     if (message.action === 'checkCharacterLimit') {
-        checkCharacterLimit(message.count)
+        checkCharacterLimit(message.apiKey, message.count)
             .then(result => sendResponse(result))
             .catch(error => sendResponse({ allowed: false, error }));
         return true;
     }
 
     if (message.action === 'getCharacterCount') {
-        getCharacterCount()
+        getCharacterCount(message.apiKey)
             .then(count => sendResponse({ count }))
             .catch(error => sendResponse({ error }));
         return true;

@@ -1,5 +1,5 @@
 // 用于存储已翻译的节点，避免重复翻译
-const translatedNodes = new WeakSet();
+let translatedNodes = new WeakSet();
 
 // 添加翻译状态控制
 let isTranslating = false;
@@ -9,6 +9,9 @@ let shouldStop = false;
 let hoverTimeout;
 let currentHoverElement = null;
 let isCtrlPressed = false;
+
+// 添加一个变量来跟踪页面翻译状态
+let isPageTranslated = false;
 
 // 创建进度条
 function createProgressBar() {
@@ -338,8 +341,42 @@ function createTranslatedElement(originalNode, translatedText) {
     }
 }
 
-// 翻译页面函数
+// 修改翻译页面函数
 async function translatePage() {
+    const translateButton = document.getElementById('translate-page-button');
+
+    // 如果已经翻译，则移除所有翻译
+    if (isPageTranslated) {
+        try {
+            // 查找所有翻译节点并移除
+            const translatedElements = document.querySelectorAll('.translation-container');
+            translatedElements.forEach(element => element.remove());
+            
+            // 重置所有状态
+            translatedNodes = new WeakSet();
+            isPageTranslated = false;
+            isTranslating = false;
+            shouldStop = false;
+            
+            // 更新按钮状态和文本
+            translateButton.textContent = '翻译页面';
+            translateButton.style.backgroundColor = '#4CAF50';
+            translateButton.title = '点击翻译整个页面';
+
+            // 触发一次 mouseenter 事件以更新提示文本
+            translateButton.dispatchEvent(new MouseEvent('mouseenter'));
+
+            // 隐藏进度条
+            const container = document.getElementById('translation-progress-container');
+            if (container) {
+                container.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('重置翻译状态时出错:', error);
+        }
+        return;
+    }
+
     if (isTranslating) {
         shouldStop = true;
         return;
@@ -347,7 +384,6 @@ async function translatePage() {
 
     isTranslating = true;
     shouldStop = false;
-    const translateButton = document.getElementById('translate-page-button');
     translateButton.textContent = '停止翻译';
     translateButton.style.backgroundColor = '#f44336';
 
@@ -441,47 +477,56 @@ async function translatePage() {
         // 更新字符统计
         await translationService.updateCharacterCount(totalChars);
 
+        let successfulTranslations = 0;
         // 将翻译结果注入页面
         nodesToTranslate.forEach((node, index) => {
             try {
                 const translatedElement = createTranslatedElement(node, translatedTexts[index]);
                 if (!translatedElement) return;
 
-                // 获取原始节点的父元素
                 const parentElement = node.parentElement;
                 if (!parentElement || !parentElement.parentElement) return;
 
                 try {
-                    // 尝试在原始元素后面插入翻译
                     parentElement.after(translatedElement);
+                    translatedNodes.add(node);
+                    successfulTranslations++;
                 } catch (e) {
-                    console.warn('无法直接插入翻译元素，尝试替代方法');
-                    // 替代方法：使用 insertAdjacentElement
-                    try {
-                        parentElement.insertAdjacentElement('afterend', translatedElement);
-                    } catch (e2) {
-                        console.warn('所有插入方法都失败，跳过此节点');
-                        return;
-                    }
+                    console.warn('无法插入翻译元素:', e);
                 }
-
-                translatedNodes.add(node);
             } catch (error) {
                 console.warn('处理节点失败:', error);
             }
         });
+
+        // 在成功翻译后更新按钮状态
+        if (successfulTranslations > 0) {
+            isPageTranslated = true;
+            translateButton.textContent = '显示原文';
+            translateButton.style.backgroundColor = '#FFA500';
+            translateButton.title = '点击显示原文';
+            // 触发一次 mouseenter 事件以更新提示文本
+            translateButton.dispatchEvent(new MouseEvent('mouseenter'));
+        } else {
+            translateButton.textContent = '翻译页面';
+            translateButton.style.backgroundColor = '#4CAF50';
+            translateButton.title = '点击翻译整个页面';
+            // 触发一次 mouseenter 事件以更新提示文本
+            translateButton.dispatchEvent(new MouseEvent('mouseenter'));
+        }
 
     } catch (error) {
         if (error.message !== '翻译已停止') {
             console.error('翻译过程出错:', error);
             alert('翻译过程出错: ' + error.message);
         }
+        // 出错时重置按钮和状态
+        isPageTranslated = false;
+        translateButton.textContent = '翻译页面';
+        translateButton.style.backgroundColor = '#4CAF50';
     } finally {
         isTranslating = false;
         shouldStop = false;
-        const translateButton = document.getElementById('translate-page-button');
-        translateButton.textContent = '翻译页面';
-        translateButton.style.backgroundColor = '#4CAF50';
         
         // 延迟隐藏进度条
         setTimeout(() => {
@@ -493,7 +538,7 @@ async function translatePage() {
     }
 }
 
-// 添加翻译按钮
+// 修改添加翻译按钮函数
 function addTranslateButton() {
     const button = document.createElement('button');
     button.id = 'translate-page-button';
@@ -510,11 +555,21 @@ function addTranslateButton() {
         border-radius: 4px;
         cursor: pointer;
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        transition: background-color 0.3s;
+        transition: all 0.3s;
     `;
+
+    // 添加悬停提示
+    button.title = '点击翻译整个页面';
     
     button.addEventListener('click', translatePage);
     document.body.appendChild(button);
+
+    // 根据翻译状态更新按钮提示
+    const updateButtonTitle = () => {
+        button.title = isPageTranslated ? '点击显示原文' : '点击翻译整个页面';
+    };
+
+    button.addEventListener('mouseenter', updateButtonTitle);
 }
 
 // 初始化

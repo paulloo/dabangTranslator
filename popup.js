@@ -5,6 +5,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 	const result = document.getElementById('result');
 	let isTranslated = false;  // 添加翻译状态标记
 
+	// 确保 translationService 已加载
+	if (!window.translationService) {
+		console.error('翻译服务未正确加载');
+		alert('翻译服务初始化失败，请刷新页面重试');
+		return;
+	}
+
 	// 初始化配置
 	await window.configManager.init();
 	
@@ -80,11 +87,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 	updateCharacterCountDisplay();
 });
 
-// 添加字符统计显示功能
+// 修改字符统计显示功能
 async function updateCharacterCountDisplay() {
 	try {
+		const apiKey = window.configManager.getApiKey();
 		const response = await chrome.runtime.sendMessage({
-			action: 'getCharacterCount'
+			action: 'getCharacterCount',
+			apiKey: apiKey
 		});
 
 		if (response.error) {

@@ -82,9 +82,11 @@ class TranslationService {
     // 更新字符统计
     async updateCharacterCount(characters) {
         try {
+            const apiKey = await this.getApiKey();
             await chrome.runtime.sendMessage({
                 action: 'updateCharacterCount',
-                count: characters
+                count: characters,
+                apiKey: apiKey
             });
         } catch (error) {
             console.warn('更新字符统计失败:', error);
@@ -94,9 +96,11 @@ class TranslationService {
     // 检查字符限制
     async checkCharacterLimit(chars) {
         try {
+            const apiKey = await this.getApiKey();
             return await chrome.runtime.sendMessage({
                 action: 'checkCharacterLimit',
-                count: chars
+                count: chars,
+                apiKey: apiKey
             });
         } catch (error) {
             console.error('检查字符限制失败:', error);
