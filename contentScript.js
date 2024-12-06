@@ -164,7 +164,8 @@ async function handleHoverTranslation(element) {
 
 // 修改事件监听器
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Control') {
+    // 只在单独按下 Ctrl 键时触发，忽略其他组合键
+    if (e.key === 'Control' && !e.altKey && !e.shiftKey && !e.metaKey) {
         isCtrlPressed = true;
         if (currentHoverElement) {
             const tip = document.getElementById('translation-hover-tip');
@@ -180,11 +181,18 @@ document.addEventListener('keydown', (e) => {
                 updateTipPosition(e);
             }
         }
+    } else {
+        // 如果按下了其他键，取消翻译状态
+        isCtrlPressed = false;
+        const tip = document.getElementById('translation-hover-tip');
+        if (tip) {
+            tip.style.display = 'none';
+        }
     }
 });
 
 document.addEventListener('keyup', (e) => {
-    if (e.key === 'Control') {
+    if (e.key === 'Control' && isCtrlPressed) {  // 确保是通过我们的逻辑设置的 Ctrl 状态
         isCtrlPressed = false;
         const tip = document.getElementById('translation-hover-tip');
         if (tip) {
@@ -221,7 +229,8 @@ document.addEventListener('mouseover', (e) => {
     currentHoverElement = target;
     clearTimeout(hoverTimeout);
 
-    if (isCtrlPressed) {
+    // 只在单独按住 Ctrl 键时显示提示
+    if (isCtrlPressed && !e.altKey && !e.shiftKey && !e.metaKey) {
         const tip = document.getElementById('translation-hover-tip');
         if (tip) {
             // 检查当前元素是否已翻译，显示不同的提示文本
